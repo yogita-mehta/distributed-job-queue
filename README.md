@@ -73,83 +73,42 @@ run two loops:
 | Dashboard | `src/dashboard/` | Live-updating ops view (queue depth, throughput chart, latency) |
 | Load test | `scripts/loadTest.js` | Generates load and reports real, measured performance numbers |
 
-## Setup
+## Deployment
 
+### 🐳 Docker Compose (Recommended for local)
+The entire stack (Redis + API + 2 Workers + Dashboard) can be started with one command:
+```bash
+docker-compose up --build
+```
+
+### 🚀 One-Click Deploy to Render
+This project includes a `render.yaml` blueprint. To deploy to Render:
+1. Create a **New Blueprint Instance** on your [Render Dashboard](https://dashboard.render.com/blueprints).
+2. Connect this repository.
+3. Render will automatically provision Redis and all 3 services on the **Free Tier**.
+
+## Setup (Manual)
+
+### Prerequisites
+- Node.js (v18+)
+- Redis Server
+
+### Installation
 ```bash
 npm install
 cp .env.example .env
-redis-server                     # or: docker run -p 6379:6379 redis
+redis-server
 ```
 
+### Running Services
 Run each in its own terminal:
-
 ```bash
-npm run start:api          # producer API on :4000
-npm run start:worker       # run this in 2+ terminals to simulate a worker fleet
-npm run start:dashboard    # dashboard on :5000
+npm run start:api          # Producer API on :4000
+npm run start:worker       # Job Worker
+npm run start:dashboard    # Ops Dashboard on :5000
 ```
 
-Submit a job:
-
-```bash
-curl -X POST http://localhost:4000/jobs \
-  -H "Content-Type: application/json" \
-  -d '{"type": "sendEmail", "payload": {"to": "user@example.com"}, "priority": 1}'
-```
-
-Job types available: `sendEmail`, `generateReport`, `processPayment`, `resizeImage`, `updateInventory`.
-Priority: `1` = HIGH, `2` = MEDIUM (default), `3` = LOW.
-
-Run the load test to reproduce the benchmark numbers below:
-
-```bash
-npm run load-test 1000     # enqueues 1000 jobs, waits for workers to drain the queue, prints a report
-```
-
-## Benchmark results (measured, not estimated)
-
-Run with **2 concurrent worker processes** against a local Redis instance,
-job handlers configured with realistic simulated failure rates (8–20% per job type):
-
-| Metric | Run 1 (500 jobs) | Run 2 (1000 jobs) |
-|---|---|---|
-| Success rate | 99.2% | 99.7% |
-| Sustained throughput | 8.45 jobs/sec | 8.54 jobs/sec |
-| p50 latency | 149 ms | 148 ms |
-| p95 latency | 469 ms | 494 ms |
-| p99 latency | 574 ms | 573 ms |
-| Retries triggered | 69 | 143 |
-| Jobs correctly dead-lettered | 4 | 3 |
-
-Stalled-job recovery was verified separately by force-killing a job mid-processing:
-the worker's maintenance loop detected it after the 15s timeout and re-queued
-it automatically, with no manual intervention. Throughput scales roughly
-linearly with worker count since workers are fully stateless and coordinate
-only through Redis — adding more workers is the horizontal scaling path.
-
-*(Re-run `npm run load-test` yourself any time — every number above is
-reproducible, not hand-picked.)*
-
-## Resume bullet suggestions
-
-Use whichever framing fits the role you're applying for — these are built
-directly from the measured results above:
-
-- Designed and built a distributed, Redis-backed job queue supporting
-  priority scheduling, exponential-backoff retries, and dead-letter handling;
-  sustained **99.7% job success rate** across 1,000 jobs with automatic
-  recovery of transient failures.
-- Implemented crash-recovery for worker processes using a stalled-job
-  detection loop, eliminating silent job loss without any manual intervention.
-- Built a live operations dashboard exposing p50/p95/p99 latency and
-  rolling throughput, enabling real-time visibility into a horizontally
-  scalable worker fleet.
-- Benchmarked the system at **~8.5 jobs/sec sustained throughput** with a
-  2-worker fleet, with a stateless worker design that scales horizontally.
-
-## Possible extensions (mention these in interviews as "next steps")
-
-- Swap the polling worker loop for Redis Streams consumer groups (removes polling latency, gives exactly-once delivery semantics)
-- Partition `queue:pending` by job type so one slow job type can't starve others
-- Add idempotency keys so retried jobs can't double-execute side effects (e.g., double-charging a payment)
-- Containerize with Docker Compose (API + N workers + Redis) for one-command startup
+## Possible Extensions
+- **Redis Streams**: Swap the polling loop for Redis Streams consumer groups.
+- **Idempotency**: Add idempotency keys to prevent double-execution of jobs.
+- **Auto-scaling**: Scale worker replicas dynamically based on queue depth.
