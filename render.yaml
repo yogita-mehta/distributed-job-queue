@@ -2,9 +2,9 @@ services:
   # The Redis Instance
   - type: redis
     name: job-queue-redis
-    region: oregon # You can change this
+    region: oregon
     plan: free
-    ipAllowList: [] # Only allow internal traffic
+    ipAllowList: []
 
   # The Producer API
   - type: web
@@ -14,8 +14,10 @@ services:
     plan: free
     envVars:
       - key: REDIS_URL
-        fromRedisName: job-queue-redis
-        fromRedisPort: 6379
+        fromService:
+          type: redis
+          name: job-queue-redis
+          property: connectionString
       - key: PORT
         value: 4000
 
@@ -27,8 +29,10 @@ services:
     plan: free
     envVars:
       - key: REDIS_URL
-        fromRedisName: job-queue-redis
-        fromRedisPort: 6379
+        fromService:
+          type: redis
+          name: job-queue-redis
+          property: connectionString
       - key: DASHBOARD_PORT
         value: 5000
     dockerCommand: npm run start:dashboard
@@ -41,6 +45,8 @@ services:
     plan: free
     envVars:
       - key: REDIS_URL
-        fromRedisName: job-queue-redis
-        fromRedisPort: 6379
+        fromService:
+          type: redis
+          name: job-queue-redis
+          property: connectionString
     dockerCommand: npm run start:worker
