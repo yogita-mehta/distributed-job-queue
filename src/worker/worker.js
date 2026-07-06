@@ -1,4 +1,10 @@
 require('dotenv').config();
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 8080;
+app.get('/health', (req, res) => res.status(200).send('OK'));
+app.listen(PORT, () => console.log(`Worker health check on port ${PORT}`));
+
 const { createClient } = require('../config/redis');
 const { JobQueue } = require('../queue/JobQueue');
 const { runHandler } = require('./jobHandlers');
