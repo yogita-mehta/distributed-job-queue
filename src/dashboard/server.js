@@ -16,12 +16,13 @@ const metrics = new MetricsCollector(redis);
 
 app.get('/api/stats', async (req, res) => {
   try {
-    const [queueStats, latency, throughput] = await Promise.all([
+    const [queueStats, latency, throughput, recentErrors] = await Promise.all([
       queue.getStats(),
       metrics.getLatencyPercentiles(),
       metrics.getThroughput(60000),
+      metrics.getRecentErrors(10),
     ]);
-    res.json({ ...queueStats, latency, throughput, timestamp: Date.now() });
+    res.json({ ...queueStats, latency, throughput, recentErrors, timestamp: Date.now() });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

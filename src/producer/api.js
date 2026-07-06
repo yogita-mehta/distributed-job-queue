@@ -78,4 +78,17 @@ app.listen(PORT, () => {
       }
     }, 30000);
   }
+
+  // Keep-Alive Worker Ping: Prevents Render Free Tier from sleeping the worker
+  const WORKER_HEALTH_URL = process.env.WORKER_HEALTH_URL || `http://localhost:8080/health`;
+  const PING_INTERVAL = 10 * 60 * 1000; // 10 minutes
+
+  setInterval(() => {
+    const lib = WORKER_HEALTH_URL.startsWith('https') ? require('https') : require('http');
+    lib.get(WORKER_HEALTH_URL, (res) => {
+      console.log(`[Keep-Alive] Pinged worker at ${WORKER_HEALTH_URL} - Status: ${res.statusCode}`);
+    }).on('error', (err) => {
+      console.error(`[Keep-Alive] Failed to ping worker: ${err.message}`);
+    });
+  }, PING_INTERVAL);
 });

@@ -113,6 +113,18 @@ class JobQueue {
       multi.incr('metrics:jobs_retried');
     }
     multi.incr('metrics:jobs_failed');
+
+    // Record for dashboard feed
+    const errorLog = JSON.stringify({
+      id,
+      type: job.type,
+      error: String(errorMessage).slice(0, 200),
+      timestamp: now,
+      attempt: attempts
+    });
+    multi.lpush('metrics:errors', errorLog);
+    multi.ltrim('metrics:errors', 0, 49);
+
     await multi.exec();
   }
 

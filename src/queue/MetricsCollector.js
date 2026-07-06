@@ -33,6 +33,18 @@ class MetricsCollector {
       perSecond: Number((count / (windowMs / 1000)).toFixed(2)),
     };
   }
+
+  /** Fetch the last N failure logs. */
+  async getRecentErrors(limit = 10) {
+    const raw = await this.redis.lrange('metrics:errors', 0, limit - 1);
+    return raw.map((str) => {
+      try {
+        return JSON.parse(str);
+      } catch (e) {
+        return { error: 'Parse error', raw: str };
+      }
+    });
+  }
 }
 
 module.exports = { MetricsCollector };

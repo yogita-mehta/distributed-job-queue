@@ -22,6 +22,8 @@ services:
         value: 4000
       - key: DEMO_MODE
         value: 'true'
+      - key: WORKER_HEALTH_URL
+        value: http://job-queue-worker:8080/health
 
   # The Dashboard
   - type: web
