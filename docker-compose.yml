@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PORT=4000
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: npm run start:api
+
+  worker:
+    build: .
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: npm run start:worker
+    deploy:
+      replicas: 2
+
+  dashboard:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DASHBOARD_PORT=5000
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: npm run start:dashboard
