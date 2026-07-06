@@ -38,7 +38,7 @@ services:
     dockerCommand: npm run start:dashboard
 
   # The Background Workers
-  - type: worker
+  - type: web
     name: job-queue-worker
     runtime: docker
     region: oregon
