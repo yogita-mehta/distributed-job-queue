@@ -1,5 +1,7 @@
 # Distributed Job Queue System
 
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-green) ![Redis](https://img.shields.io/badge/Redis-7.0%2B-red) ![Express](https://img.shields.io/badge/Express-4.19-lightgrey) ![Docker](https://img.shields.io/badge/Docker-Enabled-blue)
+
 A Redis-backed distributed job queue built for horizontal scale: multiple worker
 processes pull from a shared priority queue, failures are retried with
 exponential backoff, permanently-failing jobs land in a dead-letter queue, and
