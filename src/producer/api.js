@@ -59,4 +59,23 @@ app.listen(PORT, () => {
   console.log(`  POST   /jobs        - submit a job`);
   console.log(`  GET    /jobs/:id    - check job status`);
   console.log(`  GET    /stats       - queue statistics`);
+
+  // Demo Traffic Generator: Enqueues a random job every 30 seconds
+  if (process.env.DEMO_MODE === 'true') {
+    console.log('--- DEMO MODE ENABLED ---');
+    setInterval(async () => {
+      try {
+        const type = VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)];
+        await queue.enqueue({
+          type,
+          payload: { isDemo: true, timestamp: new Date().toISOString() },
+          priority: Math.floor(Math.random() * 3) + 1,
+          maxRetries: 3
+        });
+        console.log(`[Demo] Auto-enqueued ${type} job`);
+      } catch (err) {
+        console.error('[Demo] Failed to auto-enqueue:', err.message);
+      }
+    }, 30000);
+  }
 });

@@ -20,6 +20,8 @@ services:
           property: connectionString
       - key: PORT
         value: 4000
+      - key: DEMO_MODE
+        value: 'true'
 
   # The Dashboard
   - type: web
