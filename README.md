@@ -73,19 +73,6 @@ run two loops:
 | Dashboard | `src/dashboard/` | Live-updating ops view (queue depth, throughput chart, latency) |
 | Load test | `scripts/loadTest.js` | Generates load and reports real, measured performance numbers |
 
-## Deployment
-
-### 🐳 Docker Compose (Recommended for local)
-The entire stack (Redis + API + 2 Workers + Dashboard) can be started with one command:
-```bash
-docker-compose up --build
-```
-
-### 🚀 One-Click Deploy to Render
-This project includes a `render.yaml` blueprint. To deploy to Render:
-1. Create a **New Blueprint Instance** on your [Render Dashboard](https://dashboard.render.com/blueprints).
-2. Connect this repository.
-3. Render will automatically provision Redis and all 3 services on the **Free Tier**.
 
 ## Setup (Manual)
 
