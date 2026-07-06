@@ -6,6 +6,23 @@ exponential backoff, permanently-failing jobs land in a dead-letter queue, and
 crashed-worker jobs are automatically detected and recovered. A live dashboard
 shows queue depth, throughput, and latency percentiles in real time.
 
+## 🚀 Key Features
+
+### ⚖️ Priority Scheduling
+- **Multi-level Priority**: Supports `High`, `Medium`, and `Low` priorities.
+- **Fairness**: Within the same priority level, jobs are handled in order of submission (FIFO).
+- **Atomic Dequeue**: Uses Redis Sorted Sets and ZPOPMIN to ensure no two workers grab the same job.
+
+### 🛡️ Resilience & Reliability
+- **Exponential Backoff**: Failed jobs are automatically retried with increasing delays (e.g., 2s, 4s, 8s).
+- **Dead Letter Queue (DLQ)**: Jobs that fail after maximum retries are moved to a separate queue for manual inspection.
+- **Stalled Job Recovery**: Automatically detects and re-enqueues jobs if a worker crashes mid-execution (zombie job detection).
+
+### 📊 Real-time Monitoring
+- **Live Metrics**: Built-in dashboard tracking successes, failures, and queue depth.
+- **Performance Analytics**: Calculates real-time latency percentiles (p50, p95, p99) and throughput (jobs/sec).
+- **Stateless Workers**: Horizontally scale by simply spinning up more worker containers.
+
 ---
 
 ## Why this design
