@@ -6,9 +6,6 @@ exponential backoff, permanently-failing jobs land in a dead-letter queue, and
 crashed-worker jobs are automatically detected and recovered. A live dashboard
 shows queue depth, throughput, and latency percentiles in real time.
 
-Built for the **Flipkart GRiD 8.0** case-study round (Software Development track),
-where the goal is a system-level solution to a real backend scaling problem.
-
 ---
 
 ## Why this design
