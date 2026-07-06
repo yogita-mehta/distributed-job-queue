@@ -1,0 +1,21 @@
+{
+  "name": "distributed-job-queue",
+  "version": "1.0.0",
+  "description": "A Redis-backed distributed job queue system with priority scheduling, exponential-backoff retries, dead-letter handling, stalled-job recovery, and a live metrics dashboard.",
+  "main": "src/producer/api.js",
+  "scripts": {
+    "start:api": "node src/producer/api.js",
+    "start:worker": "node src/worker/worker.js",
+    "start:dashboard": "node src/dashboard/server.js",
+    "load-test": "node scripts/loadTest.js"
+  },
+  "keywords": ["job-queue", "redis", "distributed-systems", "backend"],
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "ioredis": "^5.4.1",
+    "uuid": "^9.0.1"
+  }
+}

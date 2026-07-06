@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Job Queue Control</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e13;
+    --panel: #10161f;
+    --panel-border: #1d2733;
+    --text: #e6edf3;
+    --muted: #6b7c8f;
+    --amber: #f2a900;
+    --teal: #2dd4a7;
+    --coral: #ff5c5c;
+    --violet: #8b8ff2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    padding: 32px 40px 60px;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 18px;
+  }
+  header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin: 0;
+  }
+  header h1 span { color: var(--muted); font-weight: 400; }
+  .pulse {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--teal);
+    margin-right: 8px;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(45,212,167,0.5); }
+    50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(45,212,167,0); }
+  }
+  .status-line { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); }
+
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .stage {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 18px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stage::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .stage.pending::before { background: var(--muted); }
+  .stage.processing::before { background: var(--amber); }
+  .stage.delayed::before { background: var(--violet); }
+  .stage.dead::before { background: var(--coral); }
+  .stage.succeeded::before { background: var(--teal); }
+  .stage .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .stage .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 34px;
+    font-weight: 700;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .panel h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 16px;
+    font-weight: 500;
+  }
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--panel-border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  .metric-row:last-child { border-bottom: none; }
+  .metric-row .k { color: var(--muted); }
+  .metric-row .v { font-weight: 700; }
+  .v.teal { color: var(--teal); }
+  .v.coral { color: var(--coral); }
+  .v.amber { color: var(--amber); }
+
+  canvas { max-height: 220px; }
+
+  .empty {
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-align: center;
+    padding: 40px 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Job Queue Control <span>/ live ops dashboard</span></h1>
+  <div class="status-line"><span class="pulse"></span>polling every 2s</div>
+</header>
+
+<div class="pipeline">
+  <div class="stage pending">
+    <div class="label">Pending</div>
+    <div class="value" id="v-pending">–</div>
+  </div>
+  <div class="stage processing">
+    <div class="label">Processing</div>
+    <div class="value" id="v-processing">–</div>
+  </div>
+  <div class="stage delayed">
+    <div class="label">Delayed (retry)</div>
+    <div class="value" id="v-delayed">–</div>
+  </div>
+  <div class="stage succeeded">
+    <div class="label">Succeeded</div>
+    <div class="value" id="v-succeeded">–</div>
+  </div>
+  <div class="stage dead">
+    <div class="label">Dead letter</div>
+    <div class="value" id="v-dead">–</div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <h2>Throughput — completions per second (60s window)</h2>
+    <canvas id="throughputChart"></canvas>
+  </div>
+  <div class="panel">
+    <h2>Latency &amp; reliability</h2>
+    <div class="metric-row"><span class="k">p50 latency</span><span class="v" id="m-p50">– ms</span></div>
+    <div class="metric-row"><span class="k">p95 latency</span><span class="v" id="m-p95">– ms</span></div>
+    <div class="metric-row"><span class="k">p99 latency</span><span class="v" id="m-p99">– ms</span></div>
+    <div class="metric-row"><span class="k">avg latency</span><span class="v" id="m-avg">– ms</span></div>
+    <div class="metric-row"><span class="k">throughput now</span><span class="v teal" id="m-throughput">– jobs/s</span></div>
+    <div class="metric-row"><span class="k">jobs retried</span><span class="v amber" id="m-retried">–</span></div>
+    <div class="metric-row"><span class="k">stalled jobs recovered</span><span class="v amber" id="m-recovered">–</span></div>
+    <div class="metric-row"><span class="k">jobs enqueued (total)</span><span class="v" id="m-enqueued">–</span></div>
+  </div>
+</div>
+
+<script>
+const ctx = document.getElementById('throughputChart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      label: 'jobs/sec',
+      data: [],
+      borderColor: '#2dd4a7',
+      backgroundColor: 'rgba(45,212,167,0.1)',
+      fill: true,
+      tension: 0.35,
+      pointRadius: 0,
+    }]
+  },
+  options: {
+    responsive: true,
+    animation: false,
+    scales: {
+      x: { display: false },
+      y: { beginAtZero: true, grid: { color: '#1d2733' }, ticks: { color: '#6b7c8f' } }
+    },
+    plugins: { legend: { display: false } }
+  }
+});
+
+function setText(id, val) { document.getElementById(id).textContent = val; }
+
+async function poll() {
+  try {
+    const res = await fetch('/api/stats');
+    const data = await res.json();
+
+    setText('v-pending', data.queues.pending);
+    setText('v-processing', data.queues.processing);
+    setText('v-delayed', data.queues.delayed);
+    setText('v-dead', data.queues.dead);
+    setText('v-succeeded', data.counters.succeeded);
+
+    setText('m-p50', data.latency.p50 + ' ms');
+    setText('m-p95', data.latency.p95 + ' ms');
+    setText('m-p99', data.latency.p99 + ' ms');
+    setText('m-avg', data.latency.avg + ' ms');
+    setText('m-throughput', data.throughput.perSecond + ' jobs/s');
+    setText('m-retried', data.counters.retried);
+    setText('m-recovered', data.counters.recoveredStalled);
+    setText('m-enqueued', data.counters.enqueued);
+
+    const label = new Date(data.timestamp).toLocaleTimeString();
+    chart.data.labels.push(label);
+    chart.data.datasets[0].data.push(data.throughput.perSecond);
+    if (chart.data.labels.length > 30) {
+      chart.data.labels.shift();
+      chart.data.datasets[0].data.shift();
+    }
+    chart.update();
+  } catch (err) {
+    console.error('Failed to poll stats:', err);
+  }
+}
+
+poll();
+setInterval(poll, 2000);
+</script>
+
+</body>
+</html>
